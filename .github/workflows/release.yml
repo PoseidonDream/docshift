@@ -1,4 +1,4 @@
-# Builds the desktop apps (Windows, macOS, Linux), smoke-tests each one on its own OS,
+# Builds the desktop apps (Windows, Linux; Mac users use the website), smoke-tests each one on its own OS,
 # and publishes a GitHub Release with the installers plus the website as a zip.
 #
 # A release is created when "version" in package.json has no release yet: bump the
@@ -24,9 +24,6 @@ jobs:
           - os: windows-latest
             exe: release/win-unpacked/DocShift.exe
             files: release/DocShift-Windows-Setup.exe
-          - os: macos-latest
-            exe: release/mac-universal/DocShift.app/Contents/MacOS/DocShift
-            files: release/DocShift-macOS.dmg
           - os: ubuntu-latest
             exe: release/linux-unpacked/docshift
             files: release/DocShift-Linux.AppImage release/DocShift-Linux.deb
@@ -46,12 +43,6 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npm run dist -- -c.extraMetadata.version="$(node -p 'require("../package.json").version')"
-      - name: Check macOS signature (ad-hoc)
-        if: runner.os == 'macOS'
-        working-directory: desktop
-        run: |
-          codesign --verify --deep --strict --verbose=2 release/mac-universal/DocShift.app
-          codesign -dv release/mac-universal/DocShift.app 2>&1 | grep -E "Signature|Identifier"
       - name: Smoke test
         working-directory: desktop
         run: |
@@ -65,7 +56,6 @@ jobs:
           name: desktop-${{ runner.os }}
           path: |
             desktop/release/DocShift-*.exe
-            desktop/release/DocShift-*.dmg
             desktop/release/DocShift-*.AppImage
             desktop/release/DocShift-*.deb
           if-no-files-found: error
@@ -110,13 +100,11 @@ jobs:
           | System | File |
           |---|---|
           | Windows 10/11 | `DocShift-Windows-Setup.exe` |
-          | macOS 11+ (Apple Silicon and Intel) | `DocShift-macOS.dmg` |
           | Linux | `DocShift-Linux.AppImage` (any distro) or `DocShift-Linux.deb` (Ubuntu/Debian) |
+          | Mac | Use the website: https://poseidondream.github.io/docshift/ (Safari: File → Add to Dock) |
 
           **First launch:** the apps aren't signed with a paid certificate, so
           - Windows: on "Windows protected your PC", click **More info → Run anyway**.
-          - macOS: drag DocShift to Applications and open it. When macOS can't verify the developer, go to
-            **System Settings → Privacy & Security** and click **Open Anyway**.
           - Linux AppImage: make it executable (`chmod +x DocShift-Linux.AppImage`) and run it.
             The .deb installs with `sudo apt install ./DocShift-Linux.deb`.
           EOF

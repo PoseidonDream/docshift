@@ -209,23 +209,6 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true
     },
-    "mac": {
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "universal"
-          ]
-        }
-      ],
-      "category": "public.app-category.productivity",
-      "identity": "-",
-      "hardenedRuntime": false,
-      "artifactName": "DocShift-macOS.${ext}"
-    },
-    "dmg": {
-      "title": "DocShift"
-    },
     "linux": {
       "target": [
         {

@@ -1,10 +1,11 @@
 # DocShift
 
-**🌐 Use it now: [poseidondream.github.io/docshift](https://poseidondream.github.io/docshift/)** · [Download for Windows, Mac or Linux](https://github.com/PoseidonDream/docshift/releases/latest)
+**🌐 Use it now: [poseidondream.github.io/docshift](https://poseidondream.github.io/docshift/)** · [Download for Windows or Linux](https://github.com/PoseidonDream/docshift/releases/latest)
 
 A free file converter that turns Mac files into Windows files and back: documents, spreadsheets,
 presentations, photos, video and audio. Everything runs on your device, and files are never uploaded.
-It's available as a website (GitHub Pages), an installable app, and desktop apps for Windows, macOS and Linux.
+It's available as a website (GitHub Pages), an installable app, and desktop apps for Windows and Linux.
+On a Mac, use the website (Safari: File → Add to Dock to keep it in the Dock).
 
 ## Mac ⇄ Windows
 
@@ -46,19 +47,18 @@ DocShift is a Progressive Web App, so it can be installed for free with no app s
 
 After the first use, the app works offline: the installed app downloads the document engine in the background.
 
-## Desktop apps (Windows, macOS, Linux)
+## Desktop apps (Windows, Linux)
 
 Each [GitHub Release](https://github.com/PoseidonDream/docshift/releases/latest) includes installers:
 
 | System | File |
 |---|---|
 | Windows 10/11 (x64) | `DocShift-Windows-Setup.exe` |
-| macOS 11+ (Apple Silicon and Intel) | `DocShift-macOS.dmg` |
 | Linux (x64) | `DocShift-Linux.AppImage` (any distro) or `DocShift-Linux.deb` (Ubuntu/Debian) |
 
 The desktop app is the same web app packaged with [Electron](https://www.electronjs.org/) (`desktop/`).
 It works fully offline, and you can open files from the file manager with it ("Open with DocShift").
-The installers aren't signed with a paid certificate, so Windows SmartScreen and macOS Gatekeeper show
+The installers aren't signed with a paid certificate, so Windows SmartScreen shows
 a warning on first launch. The download page and release notes explain how to proceed.
 
 To build locally: `npm install && npm run build`, then in `desktop/`: `npm install && npm run dist`
@@ -113,10 +113,10 @@ Source lives in `site/`. `scripts/build.mjs` copies it to `dist/` along with the
 
 ## Releases
 
-`.github/workflows/release.yml` builds the desktop apps on Windows, macOS and Linux and smoke-tests
+`.github/workflows/release.yml` builds the desktop apps on Windows and Linux and smoke-tests
 each one on its own OS (`desktop/smoke-test.mjs`). It then publishes a GitHub Release with the installers,
 plus the website as a zip that you can unzip onto any static web host. A release is only created if all
-three builds pass. To cut a new release, bump `"version"` in
+builds pass. There is no Mac download: Mac users use the website. To cut a new release, bump `"version"` in
 `package.json` and push to `main`. The workflow creates tag `v<version>` and the release if it doesn't exist yet.
 You can also start it by hand from the Actions tab.
 
