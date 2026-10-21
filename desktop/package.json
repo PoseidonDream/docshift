@@ -1,0 +1,201 @@
+{
+  "name": "docshift",
+  "productName": "DocShift",
+  "version": "0.0.0-dev",
+  "private": true,
+  "description": "Convert documents, spreadsheets, presentations and images privately, on your computer.",
+  "homepage": "https://github.com/PoseidonDream/docshift",
+  "author": {
+    "name": "PoseidonDream",
+    "email": "PoseidonDream@users.noreply.github.com"
+  },
+  "license": "GPL-2.0-or-later",
+  "main": "main.js",
+  "scripts": {
+    "prepare-web": "node -e \"const fs=require('fs');fs.rmSync('web',{recursive:true,force:true});fs.cpSync('../dist','web',{recursive:true})\"",
+    "start": "npm run prepare-web && electron .",
+    "dist": "npm run prepare-web && electron-builder --publish never",
+    "test": "node smoke-test.mjs"
+  },
+  "devDependencies": {
+    "electron": "44.5.1",
+    "electron-builder": "26.15.7",
+    "playwright": "1.63.0"
+  },
+  "build": {
+    "appId": "io.github.poseidondream.docshift",
+    "productName": "DocShift",
+    "copyright": "DocShift contributors",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "publish": null,
+    "files": [
+      "main.js",
+      "preload.js",
+      "web/**/*"
+    ],
+    "fileAssociations": [
+      {
+        "ext": "pages",
+        "name": "Pages Document",
+        "mimeType": "application/vnd.apple.pages",
+        "role": "Viewer",
+        "rank": "Default"
+      },
+      {
+        "ext": "numbers",
+        "name": "Numbers Spreadsheet",
+        "mimeType": "application/vnd.apple.numbers",
+        "role": "Viewer",
+        "rank": "Default"
+      },
+      {
+        "ext": "key",
+        "name": "Keynote Presentation",
+        "mimeType": "application/vnd.apple.keynote",
+        "role": "Viewer",
+        "rank": "Default"
+      },
+      {
+        "ext": "docx",
+        "name": "Word Document",
+        "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "odt",
+        "name": "OpenDocument Text",
+        "mimeType": "application/vnd.oasis.opendocument.text",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "rtf",
+        "name": "Rich Text Document",
+        "mimeType": "application/rtf",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "pdf",
+        "name": "PDF Document",
+        "mimeType": "application/pdf",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "epub",
+        "name": "EPUB Book",
+        "mimeType": "application/epub+zip",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "md",
+        "name": "Markdown Document",
+        "mimeType": "text/markdown",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "xlsx",
+        "name": "Excel Spreadsheet",
+        "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "xls",
+        "name": "Excel 97-2003 Spreadsheet",
+        "mimeType": "application/vnd.ms-excel",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "ods",
+        "name": "OpenDocument Spreadsheet",
+        "mimeType": "application/vnd.oasis.opendocument.spreadsheet",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "csv",
+        "name": "CSV File",
+        "mimeType": "text/csv",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "pptx",
+        "name": "PowerPoint Presentation",
+        "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "odp",
+        "name": "OpenDocument Presentation",
+        "mimeType": "application/vnd.oasis.opendocument.presentation",
+        "role": "Viewer",
+        "rank": "Alternate"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "DocShift-Windows-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "artifactName": "DocShift-macOS.${ext}"
+    },
+    "dmg": {
+      "title": "DocShift"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Office",
+      "synopsis": "Private document converter",
+      "artifactName": "DocShift-Linux.${ext}",
+      "executableName": "docshift"
+    }
+  }
+}

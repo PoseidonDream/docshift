@@ -22,6 +22,24 @@ DocShift is a Progressive Web App, so it can be installed for free with no app s
 
 After the first use, the app works offline: the installed app downloads the document engine in the background.
 
+## Desktop apps (Windows, macOS, Linux)
+
+Each [GitHub Release](https://github.com/PoseidonDream/docshift/releases/latest) includes installers:
+
+| System | File |
+|---|---|
+| Windows 10/11 (x64) | `DocShift-Windows-Setup.exe` |
+| macOS 11+ (Apple Silicon and Intel) | `DocShift-macOS.dmg` |
+| Linux (x64) | `DocShift-Linux.AppImage` (any distro) or `DocShift-Linux.deb` (Ubuntu/Debian) |
+
+The desktop app is the same web app packaged with [Electron](https://www.electronjs.org/) (`desktop/`).
+It works fully offline, and you can open files from the file manager with it ("Open with DocShift").
+The installers aren't signed with a paid certificate, so Windows SmartScreen and macOS Gatekeeper show
+a warning on first launch. The download page and release notes explain how to proceed.
+
+To build locally: `npm install && npm run build`, then in `desktop/`: `npm install && npm run dist`
+(installers land in `desktop/release/`). `npm start` in `desktop/` runs the app without packaging.
+
 ## How it works
 
 | Piece | Used for |
@@ -62,8 +80,10 @@ Source lives in `site/`. `scripts/build.mjs` copies it to `dist/` along with the
 
 ## Releases
 
-`.github/workflows/release.yml` publishes a GitHub Release, with the built site attached as a zip
-that you can unzip onto any static web host. To cut a new release, bump `"version"` in
+`.github/workflows/release.yml` builds the desktop apps on Windows, macOS and Linux and smoke-tests
+each one on its own OS (`desktop/smoke-test.mjs`). It then publishes a GitHub Release with the installers,
+plus the website as a zip that you can unzip onto any static web host. A release is only created if all
+three builds pass. To cut a new release, bump `"version"` in
 `package.json` and push to `main`. The workflow creates tag `v<version>` and the release if it doesn't exist yet.
 You can also start it by hand from the Actions tab.
 

@@ -109,9 +109,16 @@ $("#clear").addEventListener("click", () => {
 });
 
 // ---- app install & offline ----
+const desktop = window.docshiftDesktop; // set by the Windows/Mac/Linux desktop app
 const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 
-if ("serviceWorker" in navigator) {
+if (desktop) {
+  // Everything ships inside the desktop app, so no service worker or install prompt is needed
+  document.documentElement.classList.add("desktop");
+  desktop.onOpenFiles((files) => addFiles(files.map((f) => new File([f.data], f.name))));
+  desktop.ready();
+  warmPandoc();
+} else if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js").catch((e) => console.warn("Offline support unavailable:", e));
 }
 
@@ -134,7 +141,7 @@ if (standalone) warmPandoc();
 
 // iPhone/iPad Safari has no install prompt; explain Add to Home Screen instead
 const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-if (iOS && !standalone) $("#ios-install").hidden = false;
+if (iOS && !standalone && !desktop) $("#ios-install").hidden = false;
 
 // Files opened with the installed app from the operating system ("Open with DocShift")
 if ("launchQueue" in window) {
@@ -173,7 +180,7 @@ onEngineProgress(({ ready, progress, error }) => {
   if (progress > 0 || shown) {
     shown = true;
     box.hidden = false;
-    $("#engine-text").textContent = progress < 1
+    $("#engine-text").textContent = progress < 1 && !desktop
       ? `Downloading the document engine (one time, ~16 MB)… ${Math.round(progress * 100)}%`
       : "Starting the document engine…";
     $("#engine-bar").style.width = `${progress * 100}%`;
