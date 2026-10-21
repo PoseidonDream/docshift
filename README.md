@@ -1,5 +1,7 @@
 # DocShift
 
+**🌐 Use it now: [poseidondream.github.io/docshift](https://poseidondream.github.io/docshift/)** · [Download for Windows, Mac or Linux](https://github.com/PoseidonDream/docshift/releases/latest)
+
 A free file converter that turns Mac files into Windows files and back: documents, spreadsheets,
 presentations, photos, video and audio. Everything runs on your device, and files are never uploaded.
 It's available as a website (GitHub Pages), an installable app, and desktop apps for Windows, macOS and Linux.

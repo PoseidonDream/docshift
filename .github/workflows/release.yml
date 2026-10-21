@@ -103,6 +103,8 @@ jobs:
           tag="${{ steps.version.outputs.tag }}"
           (cd dist && zip -qr "../DocShift-Web-$tag.zip" .)
           cat > notes.md <<'EOF'
+          **🌐 Website: https://poseidondream.github.io/docshift/** (works in the browser, no install needed)
+
           ## Download
 
           | System | File |
@@ -110,8 +112,6 @@ jobs:
           | Windows 10/11 | `DocShift-Windows-Setup.exe` |
           | macOS 11+ (Apple Silicon and Intel) | `DocShift-macOS.dmg` |
           | Linux | `DocShift-Linux.AppImage` (any distro) or `DocShift-Linux.deb` (Ubuntu/Debian) |
-
-          Or use it in the browser, no install needed: https://poseidondream.github.io/docshift/
 
           **First launch:** the apps aren't signed with a paid certificate, so
           - Windows: on "Windows protected your PC", click **More info → Run anyway**.
