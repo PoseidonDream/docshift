@@ -4,16 +4,15 @@
 //   { type: "pandoc", from, blob }   a format pandoc reads natively
 //   { type: "html", html }           text pulled out of PDF / iWork / ODP / TXT
 //   { type: "sheet", wb }            a SheetJS workbook
-//   { type: "image", blob }
+//   { type: "image", blob, ext }
+//   { type: "media", file }          video or audio, handled by ffmpeg
 // Step 2 (write): produce the requested output from that form.
-import { INPUTS, PANDOC_READERS, UNSUPPORTED, MIME, inputExt } from "./formats.js";
+import { PANDOC_READERS, UNSUPPORTED, MIME, inputExt, categoryOf } from "./formats.js";
 import { loadJSZip, loadXLSX, loadZahl, loadPdfjs, loadPdfmake, pandoc } from "./libs.js";
 import { extractIWork } from "./iwork.js";
-
-const IMAGE_MIME = {
-  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", gif: "image/gif",
-  bmp: "image/bmp", svg: "image/svg+xml", avif: "image/avif", ico: "image/x-icon",
-};
+import { decodeImage, encodeImage, canvasToBlob } from "./images.js";
+import { convertMedia, VIDEO_OUTPUTS, AUDIO_OUTPUTS } from "./media.js";
+import { webarchiveToHtml } from "./webarchive.js";
 
 // Pandoc filter: drop images that aren't embedded in the document (e.g. an HTML file's
 // separate picture files, or web links) instead of failing - the browser has no access to them.
@@ -27,10 +26,12 @@ const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">"
 // ======================= Step 1: load =======================
 
 async function load(file, ext) {
-  const category = INPUTS[ext];
-  // Re-type images by extension: drag-and-drop and some OSes leave File.type empty
-  if (category === "image") return { type: "image", blob: new Blob([file], { type: IMAGE_MIME[ext] }) };
+  const category = categoryOf(ext);
+  if (category === "image") return { type: "image", blob: file, ext };
+  if (category === "video" || category === "audio") return { type: "media", file };
   if (category === "sheet") return { type: "sheet", wb: await readWorkbook(file, ext) };
+  if (ext === "webarchive") return { type: "html", ...webarchiveToHtml(await file.arrayBuffer()) };
+  if (ext === "rtfd.zip") return loadRtfd(file);
 
   if (ext === "pages" || ext === "key") {
     let r;
@@ -49,8 +50,39 @@ async function load(file, ext) {
   throw new Error(`.${ext} files aren't supported.`);
 }
 
+// A Finder-zipped TextEdit bundle: Note.rtfd/TXT.rtf (+ attachments)
+async function loadRtfd(file) {
+  const zip = await (await loadJSZip()).loadAsync(await file.arrayBuffer());
+  const rtf = Object.values(zip.files).find((f) => /(^|\/)TXT\.rtf$/i.test(f.name));
+  if (!rtf) throw new Error("This zip doesn't contain a TextEdit .rtfd document.");
+  return { type: "pandoc", from: "rtf", ext: "rtf", blob: new Blob([await rtf.async("uint8array")]) };
+}
+
+// JSON: an array of records becomes one sheet; { name: [records] } becomes several
+function jsonToWorkbook(text, XLSX) {
+  let data;
+  try { data = JSON.parse(text); } catch { throw new Error("This isn't valid JSON."); }
+  const wb = XLSX.utils.book_new();
+  const toRows = (v) => (Array.isArray(v) ? v : [v]).map((r) => (r && typeof r === "object" && !Array.isArray(r) ? r : { value: r }));
+  const add = (name, v) => XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(toRows(v).map(flattenRecord)), name.slice(0, 31) || "Sheet");
+  if (data && typeof data === "object" && !Array.isArray(data) && Object.values(data).every(Array.isArray)) {
+    for (const [k, v] of Object.entries(data)) add(k, v);
+  } else add("Data", data);
+  return wb;
+}
+// Nested objects become "parent.child" columns
+function flattenRecord(obj, prefix = "", out = {}) {
+  for (const [k, v] of Object.entries(obj)) {
+    const key = prefix ? `${prefix}.${k}` : k;
+    if (v && typeof v === "object" && !Array.isArray(v) && !(v instanceof Date)) flattenRecord(v, key, out);
+    else out[key] = Array.isArray(v) ? JSON.stringify(v) : v;
+  }
+  return out;
+}
+
 async function readWorkbook(file, ext) {
   const XLSX = await loadXLSX();
+  if (ext === "json") return jsonToWorkbook(await file.text(), XLSX);
   try {
     if (ext === "csv" || ext === "tsv") {
       return XLSX.read(await file.text(), { type: "string", FS: ext === "tsv" ? "\t" : undefined, cellDates: true });
@@ -209,48 +241,19 @@ function sheetToHtml(wb, XLSX) {
     XLSX.utils.sheet_to_html(wb.Sheets[n], { header: "", footer: "" })).join("\n");
 }
 
-async function decodeImage(blob) {
-  // SVG (and anything createImageBitmap rejects) goes through an <img>
-  try {
-    if (blob.type !== "image/svg+xml") return await createImageBitmap(blob);
-  } catch { /* fall through */ }
-  const url = URL.createObjectURL(blob);
-  try {
-    const img = new Image();
-    img.src = url;
-    await img.decode();
-    if (!img.naturalWidth) { img.width = 1024; img.height = 1024; }
-    return img;
-  } catch {
-    throw new Error("This image format can't be decoded by your browser.");
-  } finally {
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-}
-
-async function imageToBlob(src, mime, background) {
-  const img = await decodeImage(src);
-  const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
-  const canvas = document.createElement("canvas");
-  canvas.width = w; canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  if (background) { ctx.fillStyle = background; ctx.fillRect(0, 0, w, h); }
-  ctx.drawImage(img, 0, 0, w, h);
-  const blob = await new Promise((r) => canvas.toBlob(r, mime, 0.92));
-  if (!blob || blob.type !== mime) throw new Error(`Your browser can't create ${mime.split("/")[1].toUpperCase()} images.`);
-  return { blob, width: w, height: h };
-}
-
 // ======================= Step 2: write =======================
 
-const PANDOC_WRITERS = { docx: "docx", odt: "odt", rtf: "rtf", html: "html5", md: "gfm", txt: "plain", epub: "epub3", tex: "latex", pptx: "pptx" };
+const PANDOC_WRITERS = {
+  docx: "docx", odt: "odt", rtf: "rtf", html: "html5", md: "gfm", txt: "plain", epub: "epub3", tex: "latex", pptx: "pptx",
+  fb2: "fb2", rst: "rst", adoc: "asciidoc", org: "org", typ: "typst", ipynb: "ipynb", dbk: "docbook5", wiki: "mediawiki",
+};
 const BINARY = new Set(["docx", "odt", "epub", "pptx"]);
 
 async function toPandocTarget(src, target, title) {
   const options = { to: PANDOC_WRITERS[target], filters: ["drop-missing.lua"] };
-  if (["html", "rtf", "tex", "epub"].includes(target)) options.standalone = true;
+  if (["html", "rtf", "tex", "epub", "fb2", "dbk", "typ"].includes(target)) options.standalone = true;
   if (target === "html") { options["embed-resources"] = true; options.variables = { pagetitle: title }; }
-  if (target === "epub") options.metadata = { title };
+  if (["epub", "fb2", "dbk"].includes(target)) options.metadata = { title };
   if (BINARY.has(target)) options["output-file"] = `output.${target}`;
 
   let stdin = null, files = {};
@@ -271,10 +274,16 @@ async function toPdf(src) {
   const make = (doc) => new Promise((resolve) => pdfMake.createPdf(doc).getBlob(resolve));
 
   if (src.type === "image") {
-    const { blob, width, height } = await imageToBlob(src.blob, "image/png");
-    const data = src.blob.type === "image/jpeg" ? src.blob : blob; // keep JPEGs compact
-    const w = width * 0.75, h = height * 0.75; // px -> pt
-    return make({ pageSize: { width: w, height: h }, pageMargins: 0, content: [{ image: await blobToDataUrl(data), width: w, height: h }] });
+    // One page per image (multi-page TIFFs give several), each page sized to its image
+    const pages = await decodeImage(src.blob, src.ext);
+    const jpeg = src.ext === "jpg" || src.ext === "jpeg";
+    const content = [];
+    for (const [i, c] of pages.entries()) {
+      const data = jpeg && i === 0 ? src.blob : await canvasToBlob(c, "image/png"); // keep JPEGs compact
+      const w = c.width * 0.75, h = c.height * 0.75; // px -> pt
+      content.push({ image: await blobToDataUrl(data), width: w, height: h, pageSize: { width: w, height: h }, pageBreak: i ? "before" : undefined });
+    }
+    return make({ pageSize: content[0].pageSize, pageMargins: 0, content });
   }
 
   const html = await prepareForPdf(await asHtml(src));
@@ -312,8 +321,9 @@ async function prepareForPdf(html) {
     if (/^data:image\/(png|jpeg)/.test(s)) continue;
     try {
       if (!s.startsWith("data:")) throw 0;
-      const { blob } = await imageToBlob(await (await fetch(s)).blob(), "image/png");
-      img.setAttribute("src", await blobToDataUrl(blob));
+      const blob = await (await fetch(s)).blob();
+      const [canvas] = await decodeImage(blob, blob.type.split("/")[1]?.replace("jpeg", "jpg"));
+      img.setAttribute("src", await blobToDataUrl(await canvasToBlob(canvas, "image/png")));
     } catch {
       img.remove();
     }
@@ -365,23 +375,25 @@ function htmlToWorkbook(html, XLSX) {
 
 async function toImageTarget(src, target) {
   if (src.type !== "image") throw new Error("Only images can be converted to image formats.");
-  const mime = MIME[target];
-  return (await imageToBlob(src.blob, mime, target === "jpg" ? "#ffffff" : null)).blob;
+  return encodeImage(await decodeImage(src.blob, src.ext), target);
 }
 
 /**
  * Converts a File to the target format.
  * @returns {Promise<{ blob: Blob, filename: string }>}
  */
-export async function convertFile(file, target) {
+export async function convertFile(file, target, { onProgress, signal } = {}) {
   const ext = inputExt(file.name);
   if (UNSUPPORTED[ext]) throw new Error(UNSUPPORTED[ext]);
-  if (!INPUTS[ext]) throw new Error(`.${ext || "?"} files aren't supported.`);
-  const base = file.name.replace(/(\.(pages|key|numbers))?\.[^.]+$/i, "") || "document";
+  if (!categoryOf(ext)) throw new Error(`.${ext || "?"} files aren't supported.`);
+  const base = file.name.replace(/(\.(pages|key|numbers|rtfd))?\.[^.]+$/i, "") || "document";
 
   const src = await load(file, ext);
   let blob, outExt = target;
-  if (["png", "jpg", "webp"].includes(target)) blob = await toImageTarget(src, target);
+  if (src.type === "media" || (src.type === "image" && VIDEO_OUTPUTS.includes(target))) {
+    if (!VIDEO_OUTPUTS.includes(target) && !AUDIO_OUTPUTS.includes(target)) throw new Error(`Can't convert to .${target}.`);
+    blob = new Blob([await convertMedia(file, target, { onProgress, signal })]);
+  } else if (["png", "jpg", "webp", "tiff", "bmp", "ico", "icns"].includes(target)) blob = await toImageTarget(src, target);
   else if (target === "pdf") blob = await toPdf(src);
   else if (["xlsx", "xls", "ods", "numbers", "csv", "tsv", "json"].includes(target) ||
            (target === "html" && src.type === "sheet")) {

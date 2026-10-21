@@ -2,7 +2,7 @@
   --bg: #f3f4f6; --card: #ffffff; --text: #1f2937; --muted: #6b7280; --border: #d9dce1;
   --accent: #0067c0; --accent-hover: #005aa8; --accent-text: #ffffff; --drop: #eef5fc;
   --error: #b91c1c; --ok: #047857; --badge-doc: #2563eb; --badge-sheet: #15803d;
-  --badge-slides: #c2410c; --badge-image: #7c3aed; --badge-x: #6b7280;
+  --badge-slides: #c2410c; --badge-image: #7c3aed; --badge-video: #be185d; --badge-audio: #0e7490; --badge-x: #6b7280;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -10,7 +10,7 @@
     --bg: #111318; --card: #1b1e25; --text: #e5e7eb; --muted: #9ca3af; --border: #333944;
     --accent: #4cc2ff; --accent-hover: #7dd3fc; --accent-text: #0b1220; --drop: #16253a;
     --error: #f87171; --ok: #34d399; --badge-doc: #60a5fa; --badge-sheet: #4ade80;
-    --badge-slides: #fb923c; --badge-image: #c4b5fd; --badge-x: #9ca3af;
+    --badge-slides: #fb923c; --badge-image: #c4b5fd; --badge-video: #f472b6; --badge-audio: #67e8f9; --badge-x: #9ca3af;
     color-scheme: dark;
   }
 }
@@ -65,6 +65,8 @@ h1 { font-size: 2rem; margin: 0; letter-spacing: -0.01em; }
 .badge.sheet { background: var(--badge-sheet); }
 .badge.slides { background: var(--badge-slides); }
 .badge.image { background: var(--badge-image); }
+.badge.video { background: var(--badge-video); }
+.badge.audio { background: var(--badge-audio); }
 .info { display: flex; flex-direction: column; min-width: 0; }
 .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .meta { color: var(--muted); font-size: .85rem; }
@@ -99,6 +101,12 @@ select {
 .desktop #get-desktop { display: none; }
 .formats { margin-top: 40px; }
 .formats h2 { font-size: 1.2rem; }
+.table-wrap { overflow-x: auto; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
+.mac-win { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.mac-win th, .mac-win td { text-align: left; padding: 8px 14px; border-bottom: 1px solid var(--border); }
+.mac-win tr:last-child td { border-bottom: 0; }
+.mac-win th { color: var(--muted); font-weight: 600; }
+.note { font-size: .92rem; color: var(--muted); margin: 10px 0 28px; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .group { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
 .group h3 { margin: 0 0 6px; font-size: 1rem; }

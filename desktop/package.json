@@ -3,7 +3,7 @@
   "productName": "DocShift",
   "version": "0.0.0-dev",
   "private": true,
-  "description": "Convert documents, spreadsheets, presentations and images privately, on your computer.",
+  "description": "Turn Mac files into Windows files and back: documents, spreadsheets, presentations, photos, video and audio.",
   "homepage": "https://github.com/PoseidonDream/docshift",
   "author": {
     "name": "PoseidonDream",
@@ -141,6 +141,55 @@
         "mimeType": "application/vnd.oasis.opendocument.presentation",
         "role": "Viewer",
         "rank": "Alternate"
+      },
+      {
+        "ext": "heic",
+        "name": "HEIC Photo",
+        "mimeType": "image/heic",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "mov",
+        "name": "QuickTime Movie",
+        "mimeType": "video/quicktime",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "m4a",
+        "name": "AAC Audio",
+        "mimeType": "audio/mp4",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "aiff",
+        "name": "AIFF Audio",
+        "mimeType": "audio/aiff",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "caf",
+        "name": "Core Audio File",
+        "mimeType": "audio/x-caf",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "icns",
+        "name": "Mac Icon",
+        "mimeType": "image/icns",
+        "role": "Viewer",
+        "rank": "Alternate"
+      },
+      {
+        "ext": "webarchive",
+        "name": "Safari Web Archive",
+        "mimeType": "application/x-webarchive",
+        "role": "Viewer",
+        "rank": "Alternate"
       }
     ],
     "win": {
@@ -193,7 +242,7 @@
         }
       ],
       "category": "Office",
-      "synopsis": "Private document converter",
+      "synopsis": "Mac and Windows file converter",
       "artifactName": "DocShift-Linux.${ext}",
       "executableName": "docshift"
     }

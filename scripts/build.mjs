@@ -43,6 +43,20 @@ copy("pdfmake/build/pdfmake.min.js", "pdfmake/pdfmake.min.js");
 copy("pdfmake/build/vfs_fonts.js", "pdfmake/vfs_fonts.js");
 copy("html-to-pdfmake/browser.js", "html-to-pdfmake/browser.js");
 
+// ffmpeg (video & audio). Its worker imports sibling modules, so copy the whole ESM folder.
+for (const f of fs.readdirSync(nm("@ffmpeg/ffmpeg/dist/esm")).filter((f) => f.endsWith(".js"))) {
+  copy(`@ffmpeg/ffmpeg/dist/esm/${f}`, `ffmpeg/${f}`);
+}
+copy("@ffmpeg/core/dist/esm/ffmpeg-core.js", "ffmpeg-core/ffmpeg-core.js");
+fs.writeFileSync(
+  path.join(vendor, "ffmpeg-core/ffmpeg-core.wasm.gz"),
+  zlib.gzipSync(fs.readFileSync(nm("@ffmpeg/core/dist/esm/ffmpeg-core.wasm")), { level: 9 }),
+);
+// HEIC photos (wasm embedded in the module), TIFF images
+copy("libheif-js/libheif-wasm/libheif-bundle.mjs", "libheif/libheif-bundle.mjs");
+copy("utif/UTIF.js", "utif/UTIF.js");
+copy("pako/dist/pako.min.js", "pako/pako.min.js");
+
 // Third-party license notices
 const licenses = [
   ["pandoc / pandoc-wasm (GPL-2.0-or-later, source: https://github.com/jgm/pandoc)", "pandoc-wasm/LICENSE"],
@@ -52,9 +66,16 @@ const licenses = [
   ["JSZip", "jszip/LICENSE.markdown"],
   ["pdfmake", "pdfmake/LICENSE"],
   ["html-to-pdfmake", "html-to-pdfmake/LICENSE"],
+  ["ffmpeg.wasm (@ffmpeg/ffmpeg, @ffmpeg/util)", { text: "MIT License. Copyright (c) 2019 Jerome Wu.\nSource: https://github.com/ffmpegwasm/ffmpeg.wasm" }],
+  ["ffmpeg.wasm core (@ffmpeg/core)", { text: "FFmpeg compiled to WebAssembly with x264, x265, libvpx, LAME, Opus, Vorbis and others.\n" +
+    "Licensed under the GNU General Public License v2.0 or later: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html\n" +
+    "Source: https://github.com/ffmpegwasm/ffmpeg.wasm and https://ffmpeg.org" }],
+  ["libheif-js (LGPL-3.0; source: https://github.com/catdad-experiments/libheif-js)", "libheif-js/LICENSE"],
+  ["UTIF.js", "utif/LICENSE"],
+  ["pako", "pako/LICENSE"],
 ];
 fs.writeFileSync(path.join(vendor, "LICENSES.txt"), licenses
-  .map(([name, file]) => `${"=".repeat(72)}\n${name}\n${"=".repeat(72)}\n\n${fs.readFileSync(nm(file), "utf8").trim()}\n`)
+  .map(([name, src]) => `${"=".repeat(72)}\n${name}\n${"=".repeat(72)}\n\n${(src.text ?? fs.readFileSync(nm(src), "utf8")).trim()}\n`)
   .join("\n"));
 
 fs.rmSync(path.join(vendor, "wasi-shim/tsconfig.tsbuildinfo"), { force: true });
@@ -77,7 +98,8 @@ fs.writeFileSync(swPath, fs.readFileSync(swPath, "utf8")
   .replace("__SHELL_VERSION__", hashOf(shellFiles))
   .replace("__VENDOR_VERSION__", hashOf(vendorFiles))
   .replace("__SHELL_FILES__", JSON.stringify(["./", ...shellFiles.map(rel).filter((r) => r !== "index.html")]))
-  .replace("__VENDOR_FILES__", JSON.stringify(vendorFiles.map(rel).filter((r) => !r.endsWith("pandoc.wasm.gz")))));
+  // Big engines (pandoc, ffmpeg, libheif) are cached on first use instead of at install
+  .replace("__VENDOR_FILES__", JSON.stringify(vendorFiles.filter((f) => fs.statSync(f).size < 1_500_000).map(rel))));
 
 // GitHub Pages: don't run Jekyll over the output
 fs.writeFileSync(path.join(dist, ".nojekyll"), "");

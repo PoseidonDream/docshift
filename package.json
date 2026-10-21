@@ -1,19 +1,24 @@
 {
   "name": "docshift",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
-  "description": "Private, in-browser document converter: Pages, Numbers, Keynote, Word, Excel, PowerPoint, PDF, OpenDocument, Markdown, images.",
+  "description": "Private Mac ⇄ Windows file converter: documents, spreadsheets, presentations, photos, video and audio.",
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
     "serve": "python3 -m http.server 8080 -d dist"
   },
   "dependencies": {
+    "@ffmpeg/core": "0.12.10",
+    "@ffmpeg/ffmpeg": "0.12.15",
+    "@ffmpeg/util": "0.12.2",
     "html-to-pdfmake": "2.5.30",
     "jszip": "3.10.1",
+    "libheif-js": "1.23.5",
     "pandoc-wasm": "1.1.0",
     "pdfjs-dist": "4.10.38",
     "pdfmake": "0.2.20",
+    "utif": "3.1.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }
 }

@@ -1,6 +1,6 @@
-import { INPUTS, OUTPUTS, UNSUPPORTED, inputExt, targetsFor, defaultTarget } from "./engine/formats.js";
+import { OUTPUTS, UNSUPPORTED, APPLE, inputExt, categoryOf, targetsFor, defaultTarget } from "./engine/formats.js";
 import { convertFile } from "./engine/convert.js";
-import { warmPandoc, onEngineProgress } from "./engine/libs.js";
+import { warmPandoc, loadFFmpeg, onEngineProgress } from "./engine/libs.js";
 
 const $ = (s) => document.querySelector(s);
 const drop = $("#drop"), picker = $("#picker"), queue = $("#queue"), tpl = $("#row-tpl");
@@ -11,17 +11,17 @@ const fmtSize = (n) => n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed
 function addFiles(files) {
   for (const file of files) {
     const ext = inputExt(file.name);
-    const category = INPUTS[ext];
+    const category = UNSUPPORTED[ext] ? null : categoryOf(ext);
     const node = tpl.content.firstElementChild.cloneNode(true);
     const row = { file, node, ext, busy: false, url: null };
     const status = node.querySelector(".status");
     const select = node.querySelector(".target");
 
-    node.querySelector(".badge").textContent = ext || "?";
+    node.querySelector(".badge").textContent = (ext === "rtfd.zip" ? "rtfd" : ext) || "?";
     if (category) node.querySelector(".badge").classList.add(category);
     node.querySelector(".name").textContent = file.name;
     node.querySelector(".name").title = file.name;
-    node.querySelector(".meta").textContent = fmtSize(file.size);
+    node.querySelector(".meta").textContent = fmtSize(file.size) + (APPLE.has(ext.replace(".zip", "")) ? " · Mac format" : "");
 
     if (!category) {
       node.classList.add("unsupported");
@@ -31,8 +31,10 @@ function addFiles(files) {
       for (const t of targetsFor(ext)) select.add(new Option(OUTPUTS[t], t));
       select.value = defaultTarget(ext);
       select.addEventListener("change", () => resetResult(row));
-      node.querySelector(".go").addEventListener("click", () => run(row));
+      node.querySelector(".go").addEventListener("click", () => (row.busy ? row.controller?.abort() : run(row)));
+      // Start downloading the engine this file will need
       if (category === "document" || category === "slides") warmPandoc();
+      if (category === "video" || category === "audio") loadFFmpeg().catch(() => {});
     }
     node.querySelector(".remove").addEventListener("click", () => {
       resetResult(row);
@@ -67,12 +69,16 @@ async function run(row) {
   const go = row.node.querySelector(".go"), dl = row.node.querySelector(".dl");
   resetResult(row);
   row.busy = true;
-  go.disabled = true;
-  go.textContent = "Converting…";
+  // Video and audio can take a while, so they get progress and a Cancel button
+  const media = ["video", "audio"].includes(categoryOf(row.ext)) || ["mp4", "webm"].includes(target) && row.ext === "gif";
+  row.controller = media ? new AbortController() : null;
+  go.disabled = !media;
+  go.textContent = media ? "Cancel" : "Converting…";
   setStatus(row, "Converting…");
+  const onProgress = (p) => { if (row.busy) setStatus(row, `Converting… ${Math.round(p * 100)}%`); };
   const t0 = performance.now();
   try {
-    const { blob, filename } = await convertFile(row.file, target);
+    const { blob, filename } = await convertFile(row.file, target, { onProgress, signal: row.controller?.signal });
     row.url = URL.createObjectURL(blob);
     dl.href = row.url;
     dl.download = filename;
@@ -81,10 +87,11 @@ async function run(row) {
     setStatus(row, `Ready: ${filename} (${fmtSize(blob.size)}, ${((performance.now() - t0) / 1000).toFixed(1)} s)`, "ok");
     dl.click();
   } catch (e) {
-    console.error(e);
-    setStatus(row, e.message || String(e), "error");
+    if (e.name === "AbortError") setStatus(row, "Cancelled.");
+    else { console.error(e); setStatus(row, e.message || String(e), "error"); }
   } finally {
     row.busy = false;
+    row.controller = null;
     go.disabled = false;
     go.textContent = "Convert";
   }
@@ -167,22 +174,21 @@ if (new URLSearchParams(location.search).has("shared") && "caches" in window) {
 }
 
 // ---- engine download indicator ----
-let shown = false;
-onEngineProgress(({ ready, progress, error }) => {
+onEngineProgress((engines) => {
   const box = $("#engine");
-  if (error) {
+  const failed = Object.values(engines).find((e) => e.error);
+  const loading = Object.values(engines).find((e) => e.started && !e.ready && !e.error);
+  box.classList.toggle("error", !!failed);
+  if (failed) {
     box.hidden = false;
-    box.classList.add("error");
-    $("#engine-text").textContent = `The document engine failed to load: ${error}`;
+    $("#engine-text").textContent = `The ${failed.label} failed to load: ${failed.error}`;
+    $("#engine-bar").style.width = "0";
     return;
   }
-  if (ready) { box.hidden = true; return; }
-  if (progress > 0 || shown) {
-    shown = true;
-    box.hidden = false;
-    $("#engine-text").textContent = progress < 1 && !desktop
-      ? `Downloading the document engine (one time, ~16 MB)… ${Math.round(progress * 100)}%`
-      : "Starting the document engine…";
-    $("#engine-bar").style.width = `${progress * 100}%`;
-  }
+  box.hidden = !loading;
+  if (!loading) return;
+  $("#engine-text").textContent = loading.progress < 1 && !desktop
+    ? `Downloading the ${loading.label} (one time, ${loading.size})… ${Math.round(loading.progress * 100)}%`
+    : `Starting the ${loading.label}…`;
+  $("#engine-bar").style.width = `${loading.progress * 100}%`;
 });

@@ -1,14 +1,36 @@
 # DocShift
 
-A free document converter that runs entirely in your browser. Files are never uploaded,
-so it can be hosted as a static site on GitHub Pages.
+A free file converter that turns Mac files into Windows files and back: documents, spreadsheets,
+presentations, photos, video and audio. Everything runs on your device, and files are never uploaded.
+It's available as a website (GitHub Pages), an installable app, and desktop apps for Windows, macOS and Linux.
+
+## Mac ⇄ Windows
+
+| Mac file | Windows / universal file |
+|---|---|
+| Pages (.pages) | Word (.docx), PDF |
+| Numbers (.numbers) | Excel (.xlsx), CSV |
+| Keynote (.key) | PowerPoint (.pptx), PDF |
+| iPhone/Mac photo (.heic) | JPEG, PNG |
+| QuickTime video (.mov) | MP4 |
+| Apple audio (.m4a, .aiff, .caf) | MP3, WAV |
+| Mac icon (.icns) | Windows icon (.ico), PNG |
+| Safari web archive (.webarchive) | PDF, Word, HTML |
+| TextEdit document (.rtfd, zipped) | Word, PDF |
+
+The other way, DocShift writes Numbers, MOV, AIFF, M4A and ICNS files. It can't write Pages and Keynote files,
+because only Apple's apps can create them, but Pages opens .docx and Keynote opens .pptx directly.
+
+## All formats
 
 | From | To |
 |------|----|
-| **Documents**: Pages, Word (.docx), PDF, OpenDocument (.odt), RTF, EPUB, HTML, Markdown, plain text, LaTeX, reStructuredText, Org, AsciiDoc, Jupyter, Typst | Word, PDF, OpenDocument, RTF, HTML, Markdown, text, EPUB, LaTeX, PowerPoint, Excel, ODS, CSV |
+| **Documents**: Pages, Word (.docx), PDF, OpenDocument (.odt), RTF, TextEdit .rtfd, Safari .webarchive, EPUB, HTML, Markdown, plain text, LaTeX, reStructuredText, Org, AsciiDoc, Jupyter, Typst, FictionBook, DocBook | Word, PDF, OpenDocument, RTF, HTML, Markdown, text, EPUB, FictionBook, LaTeX, reStructuredText, AsciiDoc, Org, Typst, Jupyter, DocBook, MediaWiki, PowerPoint, Excel, ODS, CSV |
 | **Presentations**: Keynote, PowerPoint (.pptx), OpenDocument (.odp) | PowerPoint, PDF, Word, OpenDocument, HTML, Markdown, text |
-| **Spreadsheets**: Numbers, Excel (.xlsx/.xls/.xlsb/.xlsm), OpenDocument (.ods), CSV, TSV | Excel (.xlsx/.xls), CSV, PDF, ODS, Numbers, TSV, HTML, JSON, Word, Markdown, text |
-| **Images**: PNG, JPEG, WebP, GIF, BMP, SVG, AVIF | PNG, JPEG, WebP, PDF |
+| **Spreadsheets**: Numbers, Excel (.xlsx/.xls/.xlsb/.xlsm), OpenDocument (.ods), CSV, TSV, JSON | Excel (.xlsx/.xls), CSV, PDF, ODS, Numbers, TSV, HTML, JSON, Word, Markdown, text |
+| **Images**: HEIC/HEIF, PNG, JPEG, WebP, GIF, TIFF (multi-page), BMP, SVG, AVIF, ICO, ICNS | JPEG, PNG, WebP, PDF, TIFF, BMP, ICO, ICNS; animated GIF → MP4/WebM |
+| **Video**: MOV, MP4, M4V, MKV, WebM, AVI, WMV, FLV, 3GP, MPEG, MTS/M2TS, OGV | MP4, MOV, MKV, WebM, AVI, animated GIF; audio as MP3, M4A, WAV |
+| **Audio**: MP3, M4A, AAC, WAV, AIFF, CAF, FLAC, OGG, Opus, WMA, AMR | MP3, M4A, WAV, FLAC, OGG, AIFF |
 
 ## Install as an app
 
@@ -49,9 +71,14 @@ To build locally: `npm install && npm run build`, then in `desktop/`: `npm insta
 | [PDF.js](https://mozilla.github.io/pdf.js/) | Reading text out of PDFs (paragraphs, headings and lists are rebuilt) |
 | [pdfmake](http://pdfmake.org) + html-to-pdfmake | Creating PDFs |
 | `site/engine/iwork.js` | Reading text from Pages and Keynote files (iWork 2013+ "IWA" format and the older iWork '09 XML format) |
-| Browser canvas | Images |
+| [ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm) | Video and audio. Streams are copied when the target container supports them, and re-encoded otherwise |
+| [libheif](https://github.com/catdad-experiments/libheif-js) | HEIC/HEIF photos |
+| [UTIF.js](https://github.com/photopea/UTIF.js) | TIFF images |
+| `site/engine/images.js` | ICO, ICNS and BMP encoding, plus ICNS decoding |
+| `site/engine/webarchive.js` | Safari web archives (binary property lists) |
+| Browser canvas | Other images |
 
-Libraries load only when needed. The pandoc engine is a one-time ~16 MB download.
+Libraries load only when needed. The pandoc engine (~16 MB) and the ffmpeg engine (~10 MB) are one-time downloads.
 A service worker (`site/sw.js`) caches the app and its libraries for offline use. Library caches are keyed
 by a hash of their contents, so updating only the app doesn't re-download the engine.
 
@@ -62,6 +89,10 @@ by a hash of their contents, so updating only the app doesn't re-download the en
 - Converting a document to a spreadsheet keeps its tables. If it has none, you get one row per paragraph.
 - PDF output uses one font (Roboto). It has no Chinese, Japanese or Korean glyphs.
 - These are not supported: old binary `.doc`/`.ppt` files, Numbers '09 files, and password-protected files.
+- Video is converted with a WebAssembly build of ffmpeg on a single CPU thread. When the codec stays the same
+  (for example H.264 .mov → .mp4), conversion takes seconds. Re-encoding, for example iPhone HEVC → H.264 MP4,
+  takes about 4–5× the video's length. Files up to roughly 2 GB work.
+- HEIC can be read but not written: browsers have no HEVC encoder.
 
 ## Develop
 

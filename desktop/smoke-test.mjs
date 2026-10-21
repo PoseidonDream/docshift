@@ -47,6 +47,19 @@ try {
     let xlsx;
     await run("csv -> xlsx", async () => { xlsx = (await convertFile(new File(["name,value\napple,3\n"], "data.csv"), "xlsx")).blob; return "ok"; });
     await run("xlsx -> csv", async () => (await text((await convertFile(new File([xlsx], "data.xlsx"), "csv")).blob)).includes("apple,3") ? "ok" : "data missing");
+    // A short generated WAV exercises the video & audio engine (ffmpeg.wasm)
+    await run("wav -> mp3", async () => {
+      const rate = 8000, n = rate; // one second of a 440 Hz tone
+      const buf = new DataView(new ArrayBuffer(44 + n * 2));
+      const str = (o, t) => [...t].forEach((c, i) => buf.setUint8(o + i, c.charCodeAt(0)));
+      str(0, "RIFF"); buf.setUint32(4, 36 + n * 2, true); str(8, "WAVEfmt "); buf.setUint32(16, 16, true);
+      buf.setUint16(20, 1, true); buf.setUint16(22, 1, true); buf.setUint32(24, rate, true); buf.setUint32(28, rate * 2, true);
+      buf.setUint16(32, 2, true); buf.setUint16(34, 16, true); str(36, "data"); buf.setUint32(40, n * 2, true);
+      for (let i = 0; i < n; i++) buf.setInt16(44 + i * 2, Math.sin((2 * Math.PI * 440 * i) / rate) * 12000, true);
+      const mp3 = (await convertFile(new File([buf.buffer], "tone.wav"), "mp3")).blob;
+      const h = new Uint8Array(await mp3.slice(0, 3).arrayBuffer());
+      return mp3.size > 1000 && (String.fromCharCode(...h) === "ID3" || h[0] === 0xff) ? "ok" : `bad mp3 (${mp3.size} bytes)`;
+    });
     await run("svg -> png", async () => {
       const svg = new File(['<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="40" height="20" fill="red"/></svg>'], "a.svg");
       return (await convertFile(svg, "png")).blob.type === "image/png" ? "ok" : "not png";

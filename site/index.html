@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DocShift – Convert Any Document</title>
-<meta name="description" content="Free, private document converter that runs in your browser. Pages to Word, Numbers to Excel, Keynote to PowerPoint, PDF, Markdown, and more.">
+<title>DocShift – Mac ⇄ Windows File Converter</title>
+<meta name="description" content="Free, private file converter that runs on your device. Pages to Word, Numbers to Excel, Keynote to PowerPoint, HEIC to JPG, MOV to MP4, and documents, images, video and audio in many other formats.">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -20,7 +20,7 @@
     <button id="install" class="btn primary" hidden>Install app</button>
   </div>
   <p id="ios-install" class="install-hint" hidden>Install as an app: tap <strong>Share</strong> <span aria-hidden="true">⎋</span>, then <strong>Add to Home Screen</strong>.</p>
-  <p class="tagline">Convert documents, spreadsheets, presentations and images between formats, right in your browser.</p>
+  <p class="tagline">Turn Mac files into Windows files and back: documents, spreadsheets, presentations, photos, video and audio.</p>
   <p class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3z"/></svg>
     Your files never leave your device. Nothing is uploaded. Works offline.</p>
 </header>
@@ -28,7 +28,7 @@
 <main class="wrap">
   <label id="drop" class="drop" for="picker">
     <span class="drop-title"><strong>Choose files</strong> or drag them here</span>
-    <span class="drop-sub">Pages, Numbers, Keynote, Word, Excel, PowerPoint, PDF, OpenDocument, Markdown, images and more</span>
+    <span class="drop-sub">Pages, Numbers, Keynote, HEIC photos, MOV videos, Word, Excel, PowerPoint, PDF, images, video, audio and more</span>
   </label>
   <input id="picker" type="file" multiple hidden>
 
@@ -69,12 +69,32 @@
   </section>
 
   <section class="formats">
+    <h2>Mac ⇄ Windows</h2>
+    <div class="table-wrap">
+      <table class="mac-win">
+        <thead><tr><th>Mac file</th><th>Windows / universal file</th></tr></thead>
+        <tbody>
+          <tr><td>Pages document (.pages)</td><td>Word (.docx), PDF</td></tr>
+          <tr><td>Numbers spreadsheet (.numbers)</td><td>Excel (.xlsx), CSV</td></tr>
+          <tr><td>Keynote presentation (.key)</td><td>PowerPoint (.pptx), PDF</td></tr>
+          <tr><td>iPhone/Mac photo (.heic)</td><td>JPEG, PNG</td></tr>
+          <tr><td>QuickTime video (.mov)</td><td>MP4</td></tr>
+          <tr><td>Apple audio (.m4a, .aiff, .caf)</td><td>MP3, WAV</td></tr>
+          <tr><td>Mac icon (.icns)</td><td>Windows icon (.ico), PNG</td></tr>
+          <tr><td>Safari web archive (.webarchive)</td><td>PDF, Word, web page</td></tr>
+          <tr><td>TextEdit document (.rtfd, zipped)</td><td>Word, PDF</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><strong>The other way:</strong> DocShift makes Numbers (.numbers), QuickTime (.mov), AIFF, M4A and Mac icon (.icns) files.
+      For Pages and Keynote, use Word and PowerPoint files: Pages opens .docx and Keynote opens .pptx directly. Apple's own formats can only be written by Apple's apps.</p>
+
     <h2>What converts to what</h2>
     <div class="grid">
       <div class="group">
         <h3>Documents</h3>
-        <p class="from">Pages, Word (.docx), PDF, OpenDocument (.odt), RTF, EPUB, HTML, Markdown, plain text, LaTeX, reStructuredText, Org, AsciiDoc, Jupyter, Typst</p>
-        <p class="to">→ Word, PDF, OpenDocument, RTF, HTML, Markdown, text, EPUB, LaTeX, PowerPoint, Excel, CSV</p>
+        <p class="from">Pages, Word (.docx), PDF, OpenDocument (.odt), RTF, TextEdit (.rtfd), Safari web archive, EPUB, HTML, Markdown, plain text, LaTeX, reStructuredText, Org, AsciiDoc, Jupyter, Typst, FictionBook, DocBook</p>
+        <p class="to">→ Word, PDF, OpenDocument, RTF, HTML, Markdown, text, EPUB, FictionBook, LaTeX, reStructuredText, AsciiDoc, Org, Typst, Jupyter, DocBook, MediaWiki, PowerPoint, Excel, CSV</p>
       </div>
       <div class="group">
         <h3>Presentations</h3>
@@ -83,13 +103,23 @@
       </div>
       <div class="group">
         <h3>Spreadsheets</h3>
-        <p class="from">Numbers, Excel (.xlsx, .xls, .xlsb), OpenDocument (.ods), CSV, TSV</p>
+        <p class="from">Numbers, Excel (.xlsx, .xls, .xlsb), OpenDocument (.ods), CSV, TSV, JSON</p>
         <p class="to">→ Excel, CSV, PDF, OpenDocument, Numbers, TSV, HTML, JSON, Word, Markdown, text</p>
       </div>
       <div class="group">
         <h3>Images</h3>
-        <p class="from">PNG, JPEG, WebP, GIF, BMP, SVG, AVIF</p>
-        <p class="to">→ PNG, JPEG, WebP, PDF</p>
+        <p class="from">HEIC/HEIF, PNG, JPEG, WebP, GIF, TIFF, BMP, SVG, AVIF, ICO, ICNS</p>
+        <p class="to">→ JPEG, PNG, WebP, PDF, TIFF, BMP, Windows icon (.ico), Mac icon (.icns); animated GIF → MP4, WebM</p>
+      </div>
+      <div class="group">
+        <h3>Video</h3>
+        <p class="from">MOV, MP4, M4V, MKV, WebM, AVI, WMV, FLV, 3GP, MPEG, MTS/M2TS, OGV</p>
+        <p class="to">→ MP4, MOV, MKV, WebM, AVI, animated GIF; extract audio as MP3, M4A, WAV</p>
+      </div>
+      <div class="group">
+        <h3>Audio</h3>
+        <p class="from">MP3, M4A, AAC, WAV, AIFF, CAF, FLAC, OGG, Opus, WMA, AMR</p>
+        <p class="to">→ MP3, M4A (AAC), WAV, FLAC, OGG, AIFF</p>
       </div>
     </div>
     <details>
@@ -100,6 +130,9 @@
         <li>Spreadsheet formulas are converted to their values in some formats (CSV, PDF, Word).</li>
         <li>PDF output uses one standard font that covers Latin, Greek and Cyrillic text, but not Chinese, Japanese or Korean.</li>
         <li>Old binary .doc and .ppt files are not supported. Save them as .docx/.pptx first.</li>
+        <li><strong>Video:</strong> when only the file type changes (for example an H.264 .mov from a Mac to .mp4), conversion takes seconds and keeps the original quality.
+          When the video has to be re-encoded (for example iPhone HEVC video to MP4 that plays everywhere), it runs on your device and takes about 4–5 times the length of the video. You can cancel at any time. Files up to about 2 GB work.</li>
+        <li>The video &amp; audio engine (about 10 MB) also downloads once, the first time you convert a video or audio file.</li>
         <li>The document engine (pandoc, about 16 MB) downloads once, the first time you need it. After that, DocShift works offline.</li>
         <li>Install DocShift as an app with the <strong>Install app</strong> button (Chrome, Edge, Android), or on iPhone/iPad with Share → Add to Home Screen. The installed app can open files directly and, on Android, receive files shared from other apps.</li>
       </ul>
