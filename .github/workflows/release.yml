@@ -1,0 +1,25 @@
+# Pushing a version tag (e.g. v1.0.0) creates a GitHub Release with the built
+# site attached as a zip, so it can be self-hosted anywhere.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+      - run: cd dist && zip -qr "../docshift-${GITHUB_REF_NAME}.zip" .
+      - run: gh release create "$GITHUB_REF_NAME" "docshift-${GITHUB_REF_NAME}.zip" --title "DocShift $GITHUB_REF_NAME" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

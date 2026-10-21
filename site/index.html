@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DocShift – Convert Any Document</title>
+<meta name="description" content="Free, private document converter that runs in your browser. Pages to Word, Numbers to Excel, Keynote to PowerPoint, PDF, Markdown, and more.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230067c0'/%3E%3Cpath d='M9 11h10l-3-3m7 13H13l3 3' stroke='white' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="wrap">
+  <h1>DocShift</h1>
+  <p class="tagline">Convert documents, spreadsheets, presentations and images between formats, right in your browser.</p>
+  <p class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3z"/></svg>
+    Your files never leave your device. Nothing is uploaded.</p>
+</header>
+
+<main class="wrap">
+  <label id="drop" class="drop" for="picker">
+    <span class="drop-title"><strong>Choose files</strong> or drag them here</span>
+    <span class="drop-sub">Pages, Numbers, Keynote, Word, Excel, PowerPoint, PDF, OpenDocument, Markdown, images and more</span>
+  </label>
+  <input id="picker" type="file" multiple hidden>
+
+  <div id="engine" class="engine" hidden>
+    <span id="engine-text">Loading the document engine…</span>
+    <div class="meter"><div id="engine-bar"></div></div>
+  </div>
+
+  <section id="queue-section" hidden>
+    <div class="queue-head">
+      <h2>Files</h2>
+      <div class="queue-actions">
+        <button id="convert-all" class="btn primary">Convert all</button>
+        <button id="clear" class="btn">Clear</button>
+      </div>
+    </div>
+    <ul id="queue" class="queue"></ul>
+  </section>
+
+  <section class="formats">
+    <h2>What converts to what</h2>
+    <div class="grid">
+      <div class="group">
+        <h3>Documents</h3>
+        <p class="from">Pages, Word (.docx), PDF, OpenDocument (.odt), RTF, EPUB, HTML, Markdown, plain text, LaTeX, reStructuredText, Org, AsciiDoc, Jupyter, Typst</p>
+        <p class="to">→ Word, PDF, OpenDocument, RTF, HTML, Markdown, text, EPUB, LaTeX, PowerPoint, Excel, CSV</p>
+      </div>
+      <div class="group">
+        <h3>Presentations</h3>
+        <p class="from">Keynote, PowerPoint (.pptx), OpenDocument (.odp)</p>
+        <p class="to">→ PowerPoint, PDF, Word, OpenDocument, HTML, Markdown, text</p>
+      </div>
+      <div class="group">
+        <h3>Spreadsheets</h3>
+        <p class="from">Numbers, Excel (.xlsx, .xls, .xlsb), OpenDocument (.ods), CSV, TSV</p>
+        <p class="to">→ Excel, CSV, PDF, OpenDocument, Numbers, TSV, HTML, JSON, Word, Markdown, text</p>
+      </div>
+      <div class="group">
+        <h3>Images</h3>
+        <p class="from">PNG, JPEG, WebP, GIF, BMP, SVG, AVIF</p>
+        <p class="to">→ PNG, JPEG, WebP, PDF</p>
+      </div>
+    </div>
+    <details>
+      <summary>Good to know</summary>
+      <ul>
+        <li>Text, headings, lists, tables and images carry over between Word, OpenDocument, Markdown, HTML and similar formats. Exact page layout, fonts and colors may change.</li>
+        <li>Pages, Keynote and PDF files are converted as <em>text</em>. Layout and pictures are not kept. Scanned PDFs (pictures of text) have no text to extract.</li>
+        <li>Spreadsheet formulas are converted to their values in some formats (CSV, PDF, Word).</li>
+        <li>PDF output uses one standard font that covers Latin, Greek and Cyrillic text, but not Chinese, Japanese or Korean.</li>
+        <li>Old binary .doc and .ppt files are not supported. Save them as .docx/.pptx first.</li>
+        <li>The document engine (pandoc, about 16 MB) downloads once, the first time you need it.</li>
+      </ul>
+    </details>
+  </section>
+</main>
+
+<footer class="wrap">
+  Powered by <a href="https://pandoc.org">pandoc</a>, <a href="https://sheetjs.com">SheetJS</a>,
+  <a href="https://mozilla.github.io/pdf.js/">PDF.js</a>, <a href="http://pdfmake.org">pdfmake</a> and
+  <a href="https://stuk.github.io/jszip/">JSZip</a>. See <a href="vendor/LICENSES.txt">licenses</a>.
+</footer>
+
+<template id="row-tpl">
+  <li class="row">
+    <span class="badge"></span>
+    <div class="info">
+      <span class="name"></span>
+      <span class="meta"></span>
+    </div>
+    <label class="to-label">to
+      <select class="target"></select>
+    </label>
+    <div class="actions">
+      <button class="btn primary go">Convert</button>
+      <a class="btn primary dl" hidden>Download</a>
+      <button class="btn icon remove" aria-label="Remove file" title="Remove">✕</button>
+    </div>
+    <p class="status" role="status" aria-live="polite"></p>
+  </li>
+</template>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
