@@ -39,13 +39,23 @@
 
   <section id="queue-section" hidden>
     <div class="queue-head">
-      <h2>Files</h2>
+      <div class="queue-title">
+        <h2>Files</h2>
+        <span id="counter" class="counter" role="status" aria-live="polite"></span>
+      </div>
       <div class="queue-actions">
         <button id="convert-all" class="btn primary">Convert all</button>
         <button id="clear" class="btn">Clear</button>
       </div>
     </div>
+    <div class="meter batch" aria-hidden="true"><div id="batch-bar"></div></div>
     <ul id="queue" class="queue"></ul>
+    <p id="all-done" class="all-done" hidden>All files converted.</p>
+    <details id="done" class="done" hidden>
+      <summary>Converted files (<span id="done-count">0</span>): download again</summary>
+      <button id="zip-all" class="btn zip-all">Download all as .zip</button>
+      <ul id="done-list" class="done-list"></ul>
+    </details>
   </section>
 
   <section id="get-desktop" class="desktop-dl">
@@ -158,7 +168,6 @@
     </label>
     <div class="actions">
       <button class="btn primary go">Convert</button>
-      <a class="btn primary dl" hidden>Download</a>
       <button class="btn icon remove" aria-label="Remove file" title="Remove">✕</button>
     </div>
     <p class="status" role="status" aria-live="polite"></p>

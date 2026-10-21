@@ -50,6 +50,16 @@ h1 { font-size: 2rem; margin: 0; letter-spacing: -0.01em; }
 
 .queue-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 28px 0 10px; }
 .queue-head h2 { margin: 0; font-size: 1.2rem; }
+.queue-title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.counter { color: var(--muted); font-size: .95rem; font-variant-numeric: tabular-nums; }
+.counter .failed { color: var(--error); }
+.meter.batch { margin: 0 0 12px; }
+.all-done { color: var(--ok); margin: 4px 0 0; }
+.done { margin-top: 12px; }
+.zip-all { margin-top: 10px; }
+.done-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; font-size: .92rem; }
+.done-list a { overflow-wrap: anywhere; }
+.done-list .size { color: var(--muted); margin-left: 8px; }
 .queue-actions { display: flex; gap: 8px; }
 .queue { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 
@@ -129,6 +139,6 @@ footer { color: var(--muted); font-size: .85rem; padding-top: 32px; padding-bott
   .to-label { grid-column: 1 / -1; }
   .to-label select { flex: 1; max-width: none; }
   .actions { grid-column: 1 / -1; }
-  .actions .go, .actions .dl { flex: 1; }
+  .actions .go { flex: 1; }
   .status { grid-column: 1 / -1; }
 }

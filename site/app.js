@@ -1,10 +1,12 @@
 import { OUTPUTS, UNSUPPORTED, APPLE, inputExt, categoryOf, targetsFor, defaultTarget } from "./engine/formats.js";
 import { convertFile } from "./engine/convert.js";
-import { warmPandoc, loadFFmpeg, onEngineProgress } from "./engine/libs.js";
+import { warmPandoc, loadFFmpeg, loadJSZip, onEngineProgress } from "./engine/libs.js";
 
 const $ = (s) => document.querySelector(s);
 const drop = $("#drop"), picker = $("#picker"), queue = $("#queue"), tpl = $("#row-tpl");
-const rows = new Set();
+const rows = new Set();   // files still in the list
+const finished = [];      // converted files: { url, filename, blob } (kept for "download again")
+let converted = 0;
 
 const fmtSize = (n) => n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1048576).toFixed(1)} MB`;
 
@@ -13,7 +15,7 @@ function addFiles(files) {
     const ext = inputExt(file.name);
     const category = UNSUPPORTED[ext] ? null : categoryOf(ext);
     const node = tpl.content.firstElementChild.cloneNode(true);
-    const row = { file, node, ext, busy: false, url: null };
+    const row = { file, node, ext, busy: false, failed: false };
     const status = node.querySelector(".status");
     const select = node.querySelector(".target");
 
@@ -37,16 +39,59 @@ function addFiles(files) {
       if (category === "video" || category === "audio") loadFFmpeg().catch(() => {});
     }
     node.querySelector(".remove").addEventListener("click", () => {
-      resetResult(row);
+      row.controller?.abort();
       rows.delete(row);
       node.remove();
-      $("#queue-section").hidden = rows.size === 0;
+      updateCounter();
     });
     status.textContent = status.textContent || "";
     rows.add(row);
     queue.appendChild(node);
   }
-  $("#queue-section").hidden = rows.size === 0;
+  updateCounter();
+}
+
+// "3 / 200 converted": converted files leave the list, so this shows what's left
+function updateCounter() {
+  const pending = [...rows].filter((r) => !r.unsupported);
+  const failed = pending.filter((r) => r.failed).length;
+  const total = converted + pending.length;
+  const counter = $("#counter");
+  counter.textContent = `${converted} / ${total} converted`;
+  if (failed) {
+    const span = document.createElement("span");
+    span.className = "failed";
+    span.textContent = ` · ${failed} failed`;
+    counter.append(span);
+  }
+  $("#batch-bar").style.width = total ? `${(converted / total) * 100}%` : "0";
+  $("#queue-section").hidden = rows.size === 0 && converted === 0;
+  $("#all-done").hidden = !(converted > 0 && pending.length === 0);
+  $("#done").hidden = finished.length === 0;
+  $("#done-count").textContent = finished.length;
+}
+
+// Browsers drop downloads that start in a quick burst, so space them out
+let saveQueue = Promise.resolve();
+function saveFile(url, filename) {
+  saveQueue = saveQueue.then(() => {
+    const a = Object.assign(document.createElement("a"), { href: url, download: filename });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    return new Promise((r) => setTimeout(r, 250));
+  });
+}
+
+// Keeps a link to each converted file in case the browser blocked the automatic download
+function addFinished(filename, blob, url) {
+  finished.push({ url, filename, blob });
+  const size = blob.size;
+  const li = document.createElement("li");
+  const a = Object.assign(document.createElement("a"), { href: url, download: filename, textContent: filename });
+  const meta = Object.assign(document.createElement("span"), { className: "size", textContent: fmtSize(size) });
+  li.append(a, meta);
+  $("#done-list").prepend(li);
 }
 
 function setStatus(row, text, cls = "") {
@@ -56,17 +101,15 @@ function setStatus(row, text, cls = "") {
 }
 
 function resetResult(row) {
-  if (row.url) URL.revokeObjectURL(row.url);
-  row.url = null;
-  row.node.querySelector(".dl").hidden = true;
-  row.node.querySelector(".go").hidden = false;
-  if (!row.unsupported) setStatus(row, "");
+  if (row.unsupported) return;
+  setStatus(row, "");
+  if (row.failed) { row.failed = false; updateCounter(); }
 }
 
 async function run(row) {
   if (row.busy || row.unsupported) return;
   const target = row.node.querySelector(".target").value;
-  const go = row.node.querySelector(".go"), dl = row.node.querySelector(".dl");
+  const go = row.node.querySelector(".go");
   resetResult(row);
   row.busy = true;
   // Video and audio can take a while, so they get progress and a Cancel button
@@ -76,19 +119,25 @@ async function run(row) {
   go.textContent = media ? "Cancel" : "Converting…";
   setStatus(row, "Converting…");
   const onProgress = (p) => { if (row.busy) setStatus(row, `Converting… ${Math.round(p * 100)}%`); };
-  const t0 = performance.now();
   try {
     const { blob, filename } = await convertFile(row.file, target, { onProgress, signal: row.controller?.signal });
-    row.url = URL.createObjectURL(blob);
-    dl.href = row.url;
-    dl.download = filename;
-    dl.hidden = false;
-    go.hidden = true;
-    setStatus(row, `Ready: ${filename} (${fmtSize(blob.size)}, ${((performance.now() - t0) / 1000).toFixed(1)} s)`, "ok");
-    dl.click();
+    if (!rows.has(row)) return; // removed or cleared while converting
+    const url = URL.createObjectURL(blob);
+    saveFile(url, filename);
+    addFinished(filename, blob, url);
+    converted++;
+    rows.delete(row);
+    row.node.remove();
+    updateCounter();
   } catch (e) {
+    if (!rows.has(row)) return;
     if (e.name === "AbortError") setStatus(row, "Cancelled.");
-    else { console.error(e); setStatus(row, e.message || String(e), "error"); }
+    else {
+      console.error(e);
+      setStatus(row, e.message || String(e), "error");
+      row.failed = true;
+      updateCounter();
+    }
   } finally {
     row.busy = false;
     row.controller = null;
@@ -106,13 +155,54 @@ drop.addEventListener("drop", (e) => addFiles(e.dataTransfer.files));
 window.addEventListener("dragover", (e) => e.preventDefault());
 window.addEventListener("drop", (e) => { e.preventDefault(); if (!drop.contains(e.target)) addFiles(e.dataTransfer.files); });
 
+// One .zip with every converted file (handy for big batches)
+$("#zip-all").addEventListener("click", async () => {
+  const button = $("#zip-all");
+  button.disabled = true;
+  button.textContent = "Zipping…";
+  try {
+    const zip = new (await loadJSZip())();
+    const used = new Set();
+    for (const { filename, blob } of finished) {
+      // Two inputs can produce the same output name ("a.md" and "a.txt" -> "a.docx")
+      let name = filename, n = 1;
+      while (used.has(name)) name = filename.replace(/(\.[^.]+)?$/, ` (${++n})$1`);
+      used.add(name);
+      zip.file(name, blob);
+    }
+    const url = URL.createObjectURL(await zip.generateAsync({ type: "blob" }));
+    saveFile(url, "DocShift converted files.zip");
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Download all as .zip";
+  }
+});
+
+let convertingAll = false;
 $("#convert-all").addEventListener("click", async () => {
-  for (const row of rows) if (!row.url) await run(row);
+  if (convertingAll) return;
+  convertingAll = true;
+  const button = $("#convert-all");
+  button.disabled = true;
+  button.textContent = "Converting…";
+  try {
+    // Snapshot: converted rows leave the set while this runs
+    for (const row of [...rows]) if (rows.has(row) && !row.unsupported && !row.busy && !row.failed) await run(row);
+  } finally {
+    convertingAll = false;
+    button.disabled = false;
+    button.textContent = "Convert all";
+  }
 });
 $("#clear").addEventListener("click", () => {
-  for (const row of rows) { resetResult(row); row.node.remove(); }
+  for (const row of rows) { row.controller?.abort(); row.node.remove(); }
   rows.clear();
-  $("#queue-section").hidden = true;
+  for (const f of finished) URL.revokeObjectURL(f.url);
+  finished.length = 0;
+  $("#done-list").replaceChildren();
+  converted = 0;
+  updateCounter();
 });
 
 // ---- app install & offline ----
