@@ -48,10 +48,10 @@ Source lives in `site/`. `scripts/build.mjs` copies it to `dist/` along with the
 
 ## Releases
 
-Pushing a tag such as `v1.0.0` runs `.github/workflows/release.yml`. It creates a GitHub Release
-with the built site attached as a zip, which you can unzip onto any static web host.
-
-    git tag v1.0.0 && git push origin v1.0.0
+`.github/workflows/release.yml` publishes a GitHub Release, with the built site attached as a zip
+that you can unzip onto any static web host. To cut a new release, bump `"version"` in
+`package.json` and push to `main`. The workflow creates tag `v<version>` and the release if it doesn't exist yet.
+You can also start it by hand from the Actions tab.
 
 ## Licenses
 

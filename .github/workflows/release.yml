@@ -1,10 +1,14 @@
-# Pushing a version tag (e.g. v1.0.0) creates a GitHub Release with the built
-# site attached as a zip, so it can be self-hosted anywhere.
+# Publishes a GitHub Release with the built site attached as a zip (for self-hosting).
+# Runs when package.json changes on main: if "version" has no release yet, it creates
+# tag v<version> and the release. Bump the version in package.json to cut a new release.
+# Can also be started by hand from the Actions tab ("Run workflow").
 name: Release
 
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+    paths: [package.json, .github/workflows/release.yml]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -12,14 +16,29 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Check whether this version is already released
+        id: version
+        run: |
+          tag="v$(node -p 'require("./package.json").version')"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "$tag is already released; nothing to do."
+          fi
+      - if: steps.version.outputs.exists != 'true'
+        uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install --no-audit --no-fund
-      - run: npm run build
-      - run: cd dist && zip -qr "../docshift-${GITHUB_REF_NAME}.zip" .
-      - run: gh release create "$GITHUB_REF_NAME" "docshift-${GITHUB_REF_NAME}.zip" --title "DocShift $GITHUB_REF_NAME" --generate-notes
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - if: steps.version.outputs.exists != 'true'
+        run: npm install --no-audit --no-fund && npm run build
+      - if: steps.version.outputs.exists != 'true'
+        name: Create release
+        run: |
+          tag="${{ steps.version.outputs.tag }}"
+          (cd dist && zip -qr "../docshift-$tag.zip" .)
+          gh release create "$tag" "docshift-$tag.zip" --target "$GITHUB_SHA" \
+            --title "DocShift $tag" --generate-notes
