@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
+import crypto from "node:crypto";
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const nm = (p) => path.join(root, "node_modules", p);
@@ -54,6 +55,28 @@ const licenses = [
 fs.writeFileSync(path.join(vendor, "LICENSES.txt"), licenses
   .map(([name, file]) => `${"=".repeat(72)}\n${name}\n${"=".repeat(72)}\n\n${fs.readFileSync(nm(file), "utf8").trim()}\n`)
   .join("\n"));
+
+fs.rmSync(path.join(vendor, "wasi-shim/tsconfig.tsbuildinfo"), { force: true });
+
+// Service worker: list the files to precache, and version each cache by a hash of its
+// contents. Library caches (incl. the 16 MB engine) survive app-only updates.
+const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true })
+  .flatMap((e) => e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]);
+const rel = (f) => path.relative(dist, f).split(path.sep).join("/");
+const hashOf = (files) => {
+  const h = crypto.createHash("sha256");
+  for (const f of files) h.update(rel(f)).update(fs.readFileSync(f));
+  return h.digest("hex").slice(0, 12);
+};
+const all = walk(dist).sort();
+const vendorFiles = all.filter((f) => rel(f).startsWith("vendor/"));
+const shellFiles = all.filter((f) => !rel(f).startsWith("vendor/") && !["sw.js", ".nojekyll"].includes(rel(f)));
+const swPath = path.join(dist, "sw.js");
+fs.writeFileSync(swPath, fs.readFileSync(swPath, "utf8")
+  .replace("__SHELL_VERSION__", hashOf(shellFiles))
+  .replace("__VENDOR_VERSION__", hashOf(vendorFiles))
+  .replace("__SHELL_FILES__", JSON.stringify(["./", ...shellFiles.map(rel).filter((r) => r !== "index.html")]))
+  .replace("__VENDOR_FILES__", JSON.stringify(vendorFiles.map(rel).filter((r) => !r.endsWith("pandoc.wasm.gz")))));
 
 // GitHub Pages: don't run Jekyll over the output
 fs.writeFileSync(path.join(dist, ".nojekyll"), "");

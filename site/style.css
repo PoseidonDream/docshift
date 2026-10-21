@@ -26,6 +26,8 @@ a { color: var(--accent); }
 
 header { padding-top: 40px; padding-bottom: 20px; }
 h1 { font-size: 2rem; margin: 0; letter-spacing: -0.01em; }
+.title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.install-hint { margin: 8px 0 0; font-size: .9rem; color: var(--muted); }
 .tagline { margin: 4px 0 8px; color: var(--muted); font-size: 1.05rem; }
 .privacy { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: .9rem; color: var(--ok); }
 .privacy svg { width: 16px; height: 16px; fill: currentColor; flex: none; }

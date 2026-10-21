@@ -108,6 +108,57 @@ $("#clear").addEventListener("click", () => {
   $("#queue-section").hidden = true;
 });
 
+// ---- app install & offline ----
+const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch((e) => console.warn("Offline support unavailable:", e));
+}
+
+let installPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  installPrompt = e;
+  $("#install").hidden = false;
+});
+$("#install").addEventListener("click", async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  installPrompt = null;
+  $("#install").hidden = true;
+});
+// Once installed, fetch the document engine in the background so it also works offline
+window.addEventListener("appinstalled", () => { $("#install").hidden = true; warmPandoc(); });
+if (standalone) warmPandoc();
+
+// iPhone/iPad Safari has no install prompt; explain Add to Home Screen instead
+const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+if (iOS && !standalone) $("#ios-install").hidden = false;
+
+// Files opened with the installed app from the operating system ("Open with DocShift")
+if ("launchQueue" in window) {
+  window.launchQueue.setConsumer(async ({ files }) => {
+    if (files?.length) addFiles(await Promise.all(files.map((h) => h.getFile())));
+  });
+}
+
+// Files shared to the app on Android (the service worker stashes them)
+if (new URLSearchParams(location.search).has("shared") && "caches" in window) {
+  (async () => {
+    const cache = await caches.open("docshift-shared");
+    const files = [];
+    for (const req of await cache.keys()) {
+      const res = await cache.match(req);
+      const name = decodeURIComponent(res.headers.get("X-Filename") || "shared-file");
+      files.push(new File([await res.blob()], name, { type: res.headers.get("Content-Type") || "" }));
+      await cache.delete(req);
+    }
+    history.replaceState(null, "", location.pathname);
+    addFiles(files);
+  })();
+}
+
 // ---- engine download indicator ----
 let shown = false;
 onEngineProgress(({ ready, progress, error }) => {
